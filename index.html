@@ -1,0 +1,439 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Token Wallet</title>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/web3/1.6.0/web3.min.js"></script>
+    <script>
+        window.addEventListener('load', async () => {
+            // Connect to Ethereum provider
+            if (window.ethereum) {
+                window.web3 = new Web3(window.ethereum);
+                try {
+                    // Request account access if needed
+                    await window.ethereum.enable();
+                } catch (error) {
+                    console.error('User denied account access');
+                }
+            } else if (window.web3) {
+                window.web3 = new Web3(web3.currentProvider);
+            } else {
+                console.error('No Ethereum provider detected');
+            }
+
+            // Contract addresses
+            const tokenAddress = '0x9eB82Ec199aa7Ff813B2Aa9D40b2a6bB4244e15d';
+            const feeContractAddress = '0x39Cba0a1EABB5D42f5AB4581F875AfDb39EA1Cda';
+            
+            // Contract ABI
+            const tokenABI = [
+                {
+                  "inputs": [
+                    {
+                      "internalType": "string",
+                      "name": "_name",
+                      "type": "string"
+                    },
+                    {
+                      "internalType": "string",
+                      "name": "_symbol",
+                      "type": "string"
+                    },
+                    {
+                      "internalType": "uint8",
+                      "name": "_decimals",
+                      "type": "uint8"
+                    },
+                    {
+                      "internalType": "uint256",
+                      "name": "_totalSupply",
+                      "type": "uint256"
+                    }
+                  ],
+                  "stateMutability": "nonpayable",
+                  "type": "constructor"
+                },
+                {
+                  "anonymous": false,
+                  "inputs": [
+                    {
+                      "indexed": true,
+                      "internalType": "address",
+                      "name": "owner",
+                      "type": "address"
+                    },
+                    {
+                      "indexed": true,
+                      "internalType": "address",
+                      "name": "spender",
+                      "type": "address"
+                    },
+                    {
+                      "indexed": false,
+                      "internalType": "uint256",
+                      "name": "value",
+                      "type": "uint256"
+                    }
+                  ],
+                  "name": "Approval",
+                  "type": "event"
+                },
+                {
+                  "anonymous": false,
+                  "inputs": [
+                    {
+                      "indexed": true,
+                      "internalType": "address",
+                      "name": "from",
+                      "type": "address"
+                    },
+                    {
+                      "indexed": true,
+                      "internalType": "address",
+                      "name": "to",
+                      "type": "address"
+                    },
+                    {
+                      "indexed": false,
+                      "internalType": "uint256",
+                      "name": "value",
+                      "type": "uint256"
+                    }
+                  ],
+                  "name": "Transfer",
+                  "type": "event"
+                },
+                {
+                  "inputs": [
+                    {
+                      "internalType": "address",
+                      "name": "",
+                      "type": "address"
+                    },
+                    {
+                      "internalType": "address",
+                      "name": "",
+                      "type": "address"
+                    }
+                  ],
+                  "name": "allowance",
+                  "outputs": [
+                    {
+                      "internalType": "uint256",
+                      "name": "",
+                      "type": "uint256"
+                    }
+                  ],
+                  "stateMutability": "view",
+                  "type": "function"
+                },
+                {
+                  "inputs": [
+                    {
+                      "internalType": "address",
+                      "name": "_spender",
+                      "type": "address"
+                    },
+                    {
+                      "internalType": "uint256",
+                      "name": "_value",
+                      "type": "uint256"
+                    }
+                  ],
+                  "name": "approve",
+                  "outputs": [
+                    {
+                      "internalType": "bool",
+                      "name": "success",
+                      "type": "bool"
+                    }
+                  ],
+                  "stateMutability": "nonpayable",
+                  "type": "function"
+                },
+                {
+                  "inputs": [
+                    {
+                      "internalType": "address",
+                      "name": "",
+                      "type": "address"
+                    }
+                  ],
+                  "name": "balanceOf",
+                  "outputs": [
+                    {
+                      "internalType": "uint256",
+                      "name": "",
+                      "type": "uint256"
+                    }
+                  ],
+                  "stateMutability": "view",
+                  "type": "function"
+                },
+                {
+                  "inputs": [],
+                  "name": "decimals",
+                  "outputs": [
+                    {
+                      "internalType": "uint8",
+                      "name": "",
+                      "type": "uint8"
+                    }
+                  ],
+                  "stateMutability": "view",
+                  "type": "function"
+                },
+                {
+                  "inputs": [],
+                  "name": "name",
+                  "outputs": [
+                    {
+                      "internalType": "string",
+                      "name": "",
+                      "type": "string"
+                    }
+                  ],
+                  "stateMutability": "view",
+                  "type": "function"
+                },
+                {
+                  "inputs": [],
+                  "name": "symbol",
+                  "outputs": [
+                    {
+                      "internalType": "string",
+                      "name": "",
+                      "type": "string"
+                    }
+                  ],
+                  "stateMutability": "view",
+                  "type": "function"
+                },
+                {
+                  "inputs": [],
+                  "name": "totalSupply",
+                  "outputs": [
+                    {
+                      "internalType": "uint256",
+                      "name": "",
+                      "type": "uint256"
+                    }
+                  ],
+                  "stateMutability": "view",
+                  "type": "function"
+                },
+                {
+                  "inputs": [
+                    {
+                      "internalType": "address",
+                      "name": "_to",
+                      "type": "address"
+                    },
+                    {
+                      "internalType": "uint256",
+                      "name": "_value",
+                      "type": "uint256"
+                    }
+                  ],
+                  "name": "transfer",
+                  "outputs": [
+                    {
+                      "internalType": "bool",
+                      "name": "success",
+                      "type": "bool"
+                    }
+                  ],
+                  "stateMutability": "nonpayable",
+                  "type": "function"
+                },
+                {
+                  "inputs": [
+                    {
+                      "internalType": "address",
+                      "name": "_from",
+                      "type": "address"
+                    },
+                    {
+                      "internalType": "address",
+                      "name": "_to",
+                      "type": "address"
+                    },
+                    {
+                      "internalType": "uint256",
+                      "name": "_value",
+                      "type": "uint256"
+                    }
+                  ],
+                  "name": "transferFrom",
+                  "outputs": [
+                    {
+                      "internalType": "bool",
+                      "name": "success",
+                      "type": "bool"
+                    }
+                  ],
+                  "stateMutability": "nonpayable",
+                  "type": "function"
+                }
+              ]; // Add the ABI of your Token contract
+            const feeContractABI = [
+                {
+                  "inputs": [
+                    {
+                      "internalType": "contract Token",
+                      "name": "_token",
+                      "type": "address"
+                    },
+                    {
+                      "internalType": "uint256",
+                      "name": "_feeAmount",
+                      "type": "uint256"
+                    }
+                  ],
+                  "stateMutability": "nonpayable",
+                  "type": "constructor"
+                },
+                {
+                  "anonymous": false,
+                  "inputs": [
+                    {
+                      "indexed": false,
+                      "internalType": "uint256",
+                      "name": "amount",
+                      "type": "uint256"
+                    }
+                  ],
+                  "name": "FeeWithdrawn",
+                  "type": "event"
+                },
+                {
+                  "inputs": [],
+                  "name": "feeAmount",
+                  "outputs": [
+                    {
+                      "internalType": "uint256",
+                      "name": "",
+                      "type": "uint256"
+                    }
+                  ],
+                  "stateMutability": "view",
+                  "type": "function"
+                },
+                {
+                  "inputs": [],
+                  "name": "owner",
+                  "outputs": [
+                    {
+                      "internalType": "address",
+                      "name": "",
+                      "type": "address"
+                    }
+                  ],
+                  "stateMutability": "view",
+                  "type": "function"
+                },
+                {
+                  "inputs": [],
+                  "name": "token",
+                  "outputs": [
+                    {
+                      "internalType": "contract Token",
+                      "name": "",
+                      "type": "address"
+                    }
+                  ],
+                  "stateMutability": "view",
+                  "type": "function"
+                },
+                {
+                  "inputs": [],
+                  "name": "withdraw",
+                  "outputs": [],
+                  "stateMutability": "nonpayable",
+                  "type": "function"
+                }
+              ]; // Add the ABI of your FeeContract contract
+
+            // Initialize contracts
+            const tokenContract = new web3.eth.Contract(tokenABI, tokenAddress);
+            const feeContract = new web3.eth.Contract(feeContractABI, feeContractAddress);
+
+            // Example: Get token balance
+            const getBalance = async () => {
+                const accounts = await web3.eth.getAccounts();
+                const balance = await tokenContract.methods.balanceOf(accounts[0]).call();
+                console.log('Token balance:', balance);
+            };
+
+            // Example: Transfer tokens
+            const transferTokens = async (to, amount) => {
+                try {
+                    const accounts = await web3.eth.getAccounts();
+                    await tokenContract.methods.transfer(to, amount).send({ from: accounts[0] });
+                    console.log('Tokens transferred successfully');
+                } catch (error) {
+                    console.error('Error transferring tokens:', error);
+                }
+            };
+
+            // Example: Transfer tokens with fee
+            const transferWithFee = async (to, amount) => {
+                try {
+                    const accounts = await web3.eth.getAccounts();
+                    await tokenContract.methods.transfer(to, amount).send({ from: accounts[0] });
+                    const feeAmount = await calculateFee(amount);
+                    await tokenContract.methods.transfer(feeContractAddress, feeAmount).send({ from: accounts[0] });
+                    await feeContract.methods.withdraw().send({ from: accounts[0] });
+                    console.log('Tokens transferred with fee');
+                } catch (error) {
+                    console.error('Error transferring tokens with fee:', error);
+                }
+            };
+
+            // Example: Calculate fee
+            const calculateFee = async (amount) => {
+                const feePercentage = await feeContract.methods.feeAmount().call();
+                return (amount * feePercentage) / 100;
+            };
+
+            // Example: Deposit tokens
+            const depositTokens = async (amount) => {
+                try {
+                    const accounts = await web3.eth.getAccounts();
+                    await tokenContract.methods.transferFrom(accounts[0], tokenAddress, amount).send({ from: accounts[0] });
+                    console.log('Tokens deposited successfully');
+                } catch (error) {
+                    console.error('Error depositing tokens:', error);
+                }
+            };
+
+            // Example: Withdraw fee
+            const withdrawFee = async () => {
+                try {
+                    const accounts = await web3.eth.getAccounts();
+                    await feeContract.methods.withdraw().send({ from: accounts[0] });
+                    console.log('Fee withdrawn successfully');
+                } catch (error) {
+                    console.error('Error withdrawing fee:', error);
+                }
+            };
+
+            // Example usage
+            getBalance();
+            // transferTokens('RECIPIENT_ADDRESS', 100);
+            // transferWithFee('RECIPIENT_ADDRESS', 100);
+            // depositTokens(100);
+            // withdrawFee();
+        });
+    </script>
+</head>
+<body>
+    <h1>Token Wallet</h1>
+    <button onclick="getBalance()">Get Balance</button>
+    <button onclick="transferTokens('0xFdacDFD7AeB2f305474FDc0e06723D609E942669', 100)">Transfer Tokens</button>
+    <button onclick="transferWithFee('0xFdacDFD7AeB2f305474FDc0e06723D609E942669', 100)">Transfer Tokens with Fee</button>
+    <button onclick="depositTokens(100)">Deposit Tokens</button>
+    <button onclick="withdrawFee()">Withdraw Fee</button>
+</body>
+</html>
